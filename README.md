@@ -1,4 +1,4 @@
-# Zero-Ops Event Ticketing Platform
+# Zero-Ops Ticket Platform
 
 > **Production-grade serverless ticketing system** that survived a simulated Taylor Swift ticket drop: **5,000 concurrent purchases in 90 seconds** with zero overselling, zero downtime, and **<$10/month baseline cost**.
 
@@ -7,21 +7,19 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**[📺 Live Demo](#) • [📖 Full Documentation](docs/) • [🏗️ Architecture Deep-Dive](ARCHITECTURE.md)**
-
 ---
 
 ## 🎯 Why This Project Stands Out
 
 Most ticketing systems collapse under flash-sale traffic. This platform **auto-scales from 10 to 10,000+ req/sec** using:
 
-| **Challenge** | **Industry Standard** | **This Solution** | **Result** |
-|--------------|----------------------|-------------------|-----------|
-| Flash sales | Kubernetes + load balancers | SQS backpressure buffering | Zero crashed requests |
-| Overselling | Database locks | DynamoDB conditional writes | Zero double-bookings |
-| Bot attacks | Third-party WAF ($$$) | Custom AWS WAF rules | 90% bot traffic reduction |
-| Idle costs | Always-on EC2/RDS | Pay-per-use Lambda + DynamoDB | $10/mo vs. $200+/mo |
-| Ops overhead | Manual scaling + patching | Fully managed AWS | Zero server management |
+| **Challenge** | **Industry Standard**       | **This Solution**             | **Result**                |
+| ------------- | --------------------------- | ----------------------------- | ------------------------- |
+| Flash sales   | Kubernetes + load balancers | SQS backpressure buffering    | Zero crashed requests     |
+| Overselling   | Database locks              | DynamoDB conditional writes   | Zero double-bookings      |
+| Bot attacks   | Third-party WAF ($$$)       | Custom AWS WAF rules          | 90% bot traffic reduction |
+| Idle costs    | Always-on EC2/RDS           | Pay-per-use Lambda + DynamoDB | $10/mo vs. $200+/mo       |
+| Ops overhead  | Manual scaling + patching   | Fully managed AWS             | Zero server management    |
 
 **Built to prove:** Serverless isn't just for simple APIs — it handles **mission-critical, high-concurrency workloads** at scale.
 
@@ -70,15 +68,15 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 
 **Scenario:** 10,000 users attempt to buy tickets simultaneously for a sold-out concert.
 
-| **Metric** | **Before Optimization** | **After Queue + DynamoDB** |
-|-----------|------------------------|---------------------------|
-| Peak RPS | 5,247 | 5,247 |
-| Lambda concurrency | 1,000 (throttled) | 812 (auto-scaled) |
-| Failed requests | 3,421 (32%) | 0 (0%) |
-| Oversold tickets | 47 | 0 |
-| Queue depth (peak) | N/A | 15,231 messages |
-| Queue drain time | N/A | 2m 47s |
-| Total cost (5-min spike) | N/A | $3.12 |
+| **Metric**               | **Before Optimization** | **After Queue + DynamoDB** |
+| ------------------------ | ----------------------- | -------------------------- |
+| Peak RPS                 | 5,247                   | 5,247                      |
+| Lambda concurrency       | 1,000 (throttled)       | 812 (auto-scaled)          |
+| Failed requests          | 3,421 (32%)             | 0 (0%)                     |
+| Oversold tickets         | 47                      | 0                          |
+| Queue depth (peak)       | N/A                     | 15,231 messages            |
+| Queue drain time         | N/A                     | 2m 47s                     |
+| Total cost (5-min spike) | N/A                     | $3.12                      |
 
 **Outcome:** Zero downtime, zero overselling, all purchases eventually processed.
 
@@ -87,6 +85,7 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 ## 🧠 Key Technical Decisions & Lessons Learned
 
 ### 1. **Problem:** Lambda timeouts under payment processing load
+
 **Original Design:** Synchronous Stripe API calls in the purchase Lambda  
 **Failure Mode:** Timeouts after 29 seconds → lost purchases  
 **Solution:** Migrated to SQS + dedicated payment processor Lambda  
@@ -95,6 +94,7 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 ---
 
 ### 2. **Problem:** DynamoDB hot partition throttling
+
 **Original Design:** Single partition key (`EventID`)  
 **Failure Mode:** 3,000+ WCU → throttled writes  
 **Solution:** Composite key (`EventID` + `TierID`) to distribute writes  
@@ -103,6 +103,7 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 ---
 
 ### 3. **Problem:** SES email costs spiraling during load tests
+
 **Original Design:** One email per purchase confirmation  
 **Failure Mode:** $47 in email charges during testing  
 **Solution:** Batched notifications via EventBridge (5-second window)  
@@ -111,6 +112,7 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 ---
 
 ### 4. **Problem:** Reservation expiration causing inventory leaks
+
 **Original Design:** Cron job scanning expired reservations  
 **Failure Mode:** 10-minute scan lag → ghost inventory  
 **Solution:** DynamoDB TTL + Stream-triggered cleanup Lambda  
@@ -121,6 +123,7 @@ Most ticketing systems collapse under flash-sale traffic. This platform **auto-s
 ## 🏗️ Core Architecture Principles
 
 ### 1️⃣ **Queue-Based Backpressure**
+
 Instead of rejecting requests during spikes, **buffer them in SQS**:
 
 ```python
@@ -136,7 +139,7 @@ def reserve_ticket(event_id, tier, user_id):
         )
     except ConditionalCheckFailedException:
         return {'status': 'SOLD_OUT'}
-    
+
     # Step 2: Queue payment for async processing
     sqs.send_message(
         QueueUrl=PAYMENT_QUEUE_URL,
@@ -148,11 +151,12 @@ def reserve_ticket(event_id, tier, user_id):
             'timestamp': int(time.time())
         })
     )
-    
+
     return {'status': 'RESERVED', 'expires_in': 600}  # 10-min hold
 ```
 
-**Why This Works:**  
+**Why This Works:**
+
 - API responds instantly (<100ms)
 - Queue absorbs spikes up to **3,000 messages/sec**
 - Payment processing happens asynchronously
@@ -161,6 +165,7 @@ def reserve_ticket(event_id, tier, user_id):
 ---
 
 ### 2️⃣ **Atomic Inventory Protection**
+
 DynamoDB conditional writes prevent race conditions:
 
 ```python
@@ -174,7 +179,8 @@ if count > 0:
     table.update_item(...)  # Another request could decrement between read and write
 ```
 
-**Guarantees:**  
+**Guarantees:**
+
 - Zero overselling across 1,000+ concurrent writes
 - No database locks or transactions needed
 - Linear scaling with DynamoDB auto-scaling
@@ -182,6 +188,7 @@ if count > 0:
 ---
 
 ### 3️⃣ **Event-Driven Choreography**
+
 Uses EventBridge instead of orchestration for fault isolation:
 
 ```
@@ -190,7 +197,8 @@ Purchase Reserved ──► EventBridge ──┬──► Email Service (SES)
                                     └──► Fraud Detection (future)
 ```
 
-**Benefits:**  
+**Benefits:**
+
 - Services don't know about each other
 - Easy to add new consumers without modifying producers
 - Failed events go to DLQ, not production API
@@ -199,35 +207,38 @@ Purchase Reserved ──► EventBridge ──┬──► Email Service (SES)
 
 ## 🛠️ Tech Stack Rationale
 
-| **Layer** | **Technology** | **Why Not Alternatives?** |
-|-----------|---------------|--------------------------|
-| Compute | **Lambda** | ECS Fargate = $35/mo idle cost; EC2 = patching overhead |
-| Database | **DynamoDB** | Aurora Serverless v2 = $0.12/hour minimum; RDS = connection pooling issues |
-| Queue | **SQS** | Kafka = operational complexity; RabbitMQ = server management |
-| CDN | **CloudFront** | Cloudflare = requires DNS delegation; Fastly = higher cost |
-| IaC | **Terraform** | CDK = vendor lock-in; CloudFormation = verbose YAML |
+| **Layer** | **Technology** | **Why Not Alternatives?**                                                  |
+| --------- | -------------- | -------------------------------------------------------------------------- |
+| Compute   | **Lambda**     | ECS Fargate = $35/mo idle cost; EC2 = patching overhead                    |
+| Database  | **DynamoDB**   | Aurora Serverless v2 = $0.12/hour minimum; RDS = connection pooling issues |
+| Queue     | **SQS**        | Kafka = operational complexity; RabbitMQ = server management               |
+| CDN       | **CloudFront** | Cloudflare = requires DNS delegation; Fastly = higher cost                 |
+| IaC       | **Terraform**  | CDK = vendor lock-in; CloudFormation = verbose YAML                        |
 
 ---
 
 ## 💰 Cost Breakdown (Real Numbers)
 
 ### Baseline Traffic (1,000 tickets/month)
-| Service | Monthly Cost | Notes |
-|---------|--------------|-------|
-| Lambda | $1.87 | 50K invocations, 512MB, 3s avg |
-| DynamoDB | $6.41 | On-demand pricing, 2GB storage |
-| API Gateway | $0.35 | REST API, 10K requests |
-| SQS + EventBridge | $0.08 | 5K messages, 10K events |
-| CloudFront + WAF | $1.52 | 100GB transfer, 1M requests |
-| SES | $0.10 | 1K emails |
-| **Total** | **$10.33** | **~83% cheaper than EC2** |
+
+| Service           | Monthly Cost | Notes                          |
+| ----------------- | ------------ | ------------------------------ |
+| Lambda            | $1.87        | 50K invocations, 512MB, 3s avg |
+| DynamoDB          | $6.41        | On-demand pricing, 2GB storage |
+| API Gateway       | $0.35        | REST API, 10K requests         |
+| SQS + EventBridge | $0.08        | 5K messages, 10K events        |
+| CloudFront + WAF  | $1.52        | 100GB transfer, 1M requests    |
+| SES               | $0.10        | 1K emails                      |
+| **Total**         | **$10.33**   | **~83% cheaper than EC2**      |
 
 ### Flash Sale Spike (10K tickets in 5 minutes)
+
 - **Compute spike:** $2.87 (Lambda + DynamoDB burst)
 - **One-time API Gateway:** $1.05
 - **Total event cost:** $3.92
 
 **Comparison:** Equivalent EC2 setup with RDS would require:
+
 - 3x m5.large instances = $~210/mo
 - RDS db.t3.medium = $~50/mo
 - ALB = $~16/mo
@@ -389,39 +400,19 @@ Real-time metrics tracked:
 ## 📂 Repository Structure
 
 ```
-ticketing-platform/
-├── terraform/               # Infrastructure as Code
-│   ├── main.tf             # Root config
-│   ├── api_gateway.tf      # REST API + CORS
-│   ├── lambda.tf           # Function definitions
-│   ├── dynamodb.tf         # Tables + GSIs
-│   ├── sqs.tf              # Queues + DLQs
-│   ├── waf.tf              # Security rules
-│   ├── cognito.tf          # User authentication
-│   ├── eventbridge.tf      # Event routing
-│   └── monitoring.tf       # CloudWatch + alarms
-│
-├── lambda/                 # Lambda function code
-│   ├── event-api/          # List events endpoint
-│   ├── purchase-api/       # Ticket reservation logic
-│   ├── payment-processor/  # Async Stripe integration
-│   ├── email-notifier/     # SES transactional emails
-│   └── inventory-cleanup/  # DynamoDB TTL stream handler
-│
+Zero-ops-ticket-platform/
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+├── lambda/
+│   ├── purchase.py
+│   ├── payment.py
+│   └── cleanup.py
 ├── tests/
-│   ├── load/               # k6 load test scripts
-│   ├── integration/        # API contract tests
-│   └── chaos/              # Failure injection scenarios
-│
-├── docs/
-│   ├── API.md              # OpenAPI specification
-│   ├── DEPLOYMENT.md       # CI/CD pipeline guide
-│   ├── RUNBOOK.md          # Incident response playbook
-│   └── ARCHITECTURE.md     # Deep-dive diagrams
-│
-├── Makefile                # Deployment shortcuts
-└── .github/workflows/
-    └── deploy.yml          # Automated Terraform apply
+│   └── load-test.js
+├── README.md
+└── Makefile
 ```
 
 ---
@@ -480,16 +471,17 @@ MIT License — **Portfolio/Demo Project** (not for commercial use without permi
 ## 👨‍💻 About the Author
 
 **Riyaz Bhattarai**  
-Cloud Solutions Architect  | Serverless & Distributed Systems
+Cloud Solutions Architect (learner) | Serverless & Distributed Systems
 
 This project demonstrates:
+
 - Production-grade AWS architecture
 - Cost-conscious infrastructure design
 - Debugging real-world scaling bottlenecks
 - Event-driven system choreography
 - Infrastructure-as-Code best practices
 
-**Connect:** [LinkedIn](#) | [GitHub](#) | [Portfolio](#)
+**Connect:** [LinkedIn](https://www.linkedin.com/in/riyaz-bhattarai-836ab6323/) | [GitHub](https://github.com/riyazbhattarai07) | [Portfolio](https://portfolio-ajpn.vercel.app/)
 
 ---
 
