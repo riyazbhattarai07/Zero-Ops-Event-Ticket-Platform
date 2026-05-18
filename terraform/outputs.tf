@@ -92,6 +92,7 @@ output "payment_lambda_arn" {
 }
 
 output "cleanup_lambda_arn" {
+  
   description = "ARN of the Cleanup Lambda function"
   value       = aws_lambda_function.cleanup.arn
 }
