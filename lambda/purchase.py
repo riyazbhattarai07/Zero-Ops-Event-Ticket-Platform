@@ -25,6 +25,7 @@ def lambda_handler(event, context):
     table = dynamodb.Table(TABLE_NAME)
     reservation_id = str(uuid.uuid4())
     
+    
     try:
         # Try to subtract tickets from the inventory table
         # It will fail if AvailableCount is less than the requested quantity

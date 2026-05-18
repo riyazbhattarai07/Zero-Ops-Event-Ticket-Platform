@@ -14,6 +14,7 @@
 
 # The public URL your API is accessible at
 # This is what you paste into curl or your frontend
+
 output "api_endpoint" {
   description = "Your API Gateway URL — use this to make requests"
   value       = "${aws_api_gateway_stage.main.invoke_url}"
@@ -92,7 +93,7 @@ output "payment_lambda_arn" {
 }
 
 output "cleanup_lambda_arn" {
-  
+
   description = "ARN of the Cleanup Lambda function"
   value       = aws_lambda_function.cleanup.arn
 }

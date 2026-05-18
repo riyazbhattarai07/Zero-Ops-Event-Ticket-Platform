@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
+
 // API URL from environment variable
 const BASE_URL = __ENV.API_URL || 'https://your-api-url.com';
 

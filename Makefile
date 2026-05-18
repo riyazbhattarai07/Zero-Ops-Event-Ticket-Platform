@@ -4,7 +4,7 @@
 # Cleaned up region to match your main.tf (ca-central-1)
 TF_DIR     := terraform
 BUILD_DIR  := .build
-LAMBDA_DIR := lambda
+LAMBDA_DIR :=  lambda
 
 # ─── Help Menu ────────────────────────────────────────────────────────────────
 help: ## Show available commands

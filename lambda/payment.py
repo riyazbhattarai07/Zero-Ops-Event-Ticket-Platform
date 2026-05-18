@@ -2,6 +2,8 @@ import json
 import boto3
 import os
 
+
+
 # Connect to AWS services simply
 dynamodb = boto3.resource('dynamodb')
 TABLE_NAME = os.environ['DYNAMODB_TABLE']

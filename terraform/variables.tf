@@ -12,6 +12,7 @@
 # ============================================================
 
 # Which AWS region to deploy everything in
+
 variable "aws_region" {
   description = "AWS region to deploy resources (e.g. us-east-1, ca-central-1)"
   type        = string
