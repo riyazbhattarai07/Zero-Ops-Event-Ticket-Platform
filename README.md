@@ -311,6 +311,19 @@ For interviews, this shows:
 
 ---
 
+## 📚 Potential Enhancements
+
+- [ ] **AI fraud detection:** AWS SageMaker model to flag suspicious purchase patterns
+- [ ] **Dynamic pricing:** Lambda@Edge to adjust ticket prices based on demand
+- [ ] **Seat map visualization:** Interactive SVG seat selection (React + DynamoDB)
+- [ ] **GraphQL API:** AppSync for real-time subscriptions
+- [ ] **Mobile SDK:** React Native app with push notifications (SNS)
+- [ ] **Chaos engineering:** Automated Lambda throttling tests via AWS FIS
+
+---
+
+
+
 ## 📚 Resources
 
 - [DynamoDB Conditional Writes](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html)
@@ -320,10 +333,40 @@ For interviews, this shows:
 
 ---
 
-## 📄 License
+## 👨‍💻 About the Author
 
-MIT — Portfolio learning project
+**Riyaz Bhattarai**  
+Cloud Solutions Architect (learner) | Serverless & Distributed Systems
+
+This project demonstrates:
+
+- Production-grade AWS architecture
+- Cost-conscious infrastructure design
+- Debugging real-world scaling bottlenecks
+- Event-driven system choreography
+- Infrastructure-as-Code best practices
+
+**Connect:** [LinkedIn](https://www.linkedin.com/in/riyaz-bhattarai-836ab6323/) | [GitHub](https://github.com/riyazbhattarai07) | [Portfolio](https://portfolio-ajpn.vercel.app/)
 
 ---
 
-**Questions? Found a bug? Open an issue!**
+## 🙏 Acknowledgments
+## 📚 Resources
+
+**Real-world incident this solves:**
+- [Ticketmaster Meltdown: Technical Analysis](https://engineeringenablement.substack.com/p/taylor-swift-ticketmaster-meltdown) — What actually broke during Eras Tour presale
+
+**AWS Documentation:**
+- [DynamoDB Conditional Writes](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html) — Atomic operations
+- [SQS FIFO Guarantees](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html) — Message ordering
+- [Lambda Concurrency](https://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html) — Auto-scaling behavior
+
+**Distributed Systems:**
+- [Eventual Consistency](https://en.wikipedia.org/wiki/Eventual_consistency) — Why async payment works
+- [Race Conditions](https://en.wikipedia.org/wiki/Race_condition) — Why atomic writes matter
+
+
+---
+
+**⭐ If this helped you understand serverless at scale, consider starring the repo!**
+
